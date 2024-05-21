@@ -2,9 +2,22 @@ import pydriller
 import glob
 import os
 from binaryornot.check import is_binary
+import sys
 
 
-repo_path = '/Users/artemtvardovski/mirea_sem_7/rkps/project/'
+# error on incorrect/non-existant path
+repo_path = sys.argv[1]
+if (not os.path.isdir(repo_path)):
+    sys.exit('ERROR[1]: Path provided is incorrect.')
+
+# error on no .git dir inside
+is_a_repo = False
+for dir_name in os.listdir(repo_path):
+    if (dir_name == '.git'):
+        is_a_repo = True
+        break
+if (not is_a_repo):
+    sys.exit('ERROR[2]: Directory provided is not a repository.')
 
 
 # ---
@@ -17,8 +30,9 @@ for root, d_names, f_names in os.walk(repo_path, topdown=True):
         if (f[0] == '.'): break # skip for hidden files
         full_f = os.path.join(root, f)
         rel_path = full_f.replace(repo_path, '')
-        if (rel_path[0] == '.'): break # skip for files in hidden dirs
-                                       # (mainly for .git)
+        if (rel_path[0] == '.' or
+            rel_path[:2] == '/.'): break # skip for files in hidden dirs
+                                         # (mainly for .git)
         if (os.path.isfile(full_f) and is_binary(full_f)):
                 binary_list.append(full_f.replace(repo_path, ''))
                 binary_count += 1
@@ -30,7 +44,7 @@ for root, d_names, f_names in os.walk(repo_path, topdown=True):
 empty_commit_count = 0
 empty_commit_list = []
 for commit in pydriller.Repository(repo_path).traverse_commits():
-     if (commit.msg.isprintable()):
+     if (not commit.msg.isprintable()):
         empty_commit_count += 1
         empty_commit_list.append(commit.hash)
 
